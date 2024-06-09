@@ -1,0 +1,21 @@
+BEGIN:VCALENDAR
+BEGIN:VEVENT
+SUMMARY:Send initial email to John Doe
+DTSTART:20240609T090000
+DTEND:20240609T100000
+DESCRIPTION:Send the 6-Point Email to john.doe@example.com
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:3B reminder for John Doe
+DTSTART:20240613T090000
+DTEND:20240613T100000
+DESCRIPTION:Check if John Doe has responded\, otherwise reach out to a new
+  contact.
+END:VEVENT
+BEGIN:VEVENT
+SUMMARY:7B reminder for John Doe
+DTSTART:20240619T090000
+DTEND:20240619T100000
+DESCRIPTION:Send a follow-up email to John Doe if no response received.
+END:VEVENT
+END:VCALENDAR
