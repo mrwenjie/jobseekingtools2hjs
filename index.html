@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3B7B Calendar Event Generator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ical.js/1.5.0/ical.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        label, input, button {
+            display: block;
+            margin-bottom: 10px;
+        }
+        input, button {
+            width: 100%;
+            padding: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>3B7B Calendar Event Generator</h1>
+    <form id="eventForm">
+        <label for="name">Contact Name:</label>
+        <input type="text" id="name" required>
+        
+        <label for="company">Company:</label>
+        <input type="text" id="company" required>
+        
+        <label for="email">Contact Email:</label>
+        <input type="email" id="email" required>
+        
+        <label for="startDate">Start Date:</label>
+        <input type="date" id="startDate" required>
+        
+        <button type="submit">Generate Calendar Events</button>
+    </form>
+
+    <script>
+        function createEvent(cal, summary, description, startDate, duration) {
+            let event = new ICAL.Event();
+            event.summary = summary;
+            event.description = description;
+            event.startDate = ICAL.Time.fromJSDate(startDate, true);
+            event.endDate = ICAL.Time.fromJSDate(new Date(startDate.getTime() + duration * 60000), true);
+            cal.addSubcomponent(event);
+        }
+
+        function getNextBusinessDay(date, n) {
+            let businessDays = 0;
+            let currentDate = new Date(date);
+            while (businessDays < n) {
+                currentDate.setDate(currentDate.getDate() + 1);
+                if (currentDate.getDay() !== 0 && currentDate.getDay() !== 6) {
+                    businessDays++;
+                }
+            }
+            return currentDate;
+        }
+
+        document.getElementById('eventForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            let name = document.getElementById('name').value;
+            let company = document.getElementById('company').value;
+            let email = document.getElementById('email').value;
+            let startDate = new Date(document.getElementById('startDate').value);
+
+            let cal = new ICAL.Component(['vcalendar', [], []]);
+
+            // Initial event
+            let initialDate = new Date(startDate);
+            initialDate.setHours(5, 0, 0, 0);
+            createEvent(cal, `Send initial email to ${name} (${company})`, `Send the 6-Point Email to ${email}`, initialDate, 60);
+
+            // 3B event
+            let threeBDate = getNextBusinessDay(startDate, 3);
+            threeBDate.setHours(6, 0, 0, 0);
+            createEvent(cal, `3B reminder for ${name} (${company})`, `Check if ${name} has responded, otherwise reach out to a new contact.`, threeBDate, 60);
+
+            // 7B event
+            let sevenBDate = getNextBusinessDay(startDate, 7);
+            sevenBDate.setHours(7, 0, 0, 0);
+            createEvent(cal, `7B reminder for ${name} (${company})`, `Send a follow-up email to ${name} if no response received.`, sevenBDate, 60);
+
+            let blob = new Blob([cal.toString()], {type: "text/calendar;charset=utf-8"});
+            saveAs(blob, `${name}_${company}_3b7b_reminders.ics`);
+        });
+    </script>
+</body>
+</html>
