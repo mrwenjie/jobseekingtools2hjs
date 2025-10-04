@@ -1,0 +1,9 @@
+{
+  "name": "threebsevenbpage",
+  "version": "1.0.0",
+  "description": "3b7b calendar generator",
+  "devDependencies": {
+    "@playwright/test": "^1.42.1",
+    "http-server": "^14.1.1"
+  }
+}

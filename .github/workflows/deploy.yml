@@ -1,4 +1,4 @@
-name: Deploy to GitHub Pages
+name: Test and Deploy to GitHub Pages
 
 on:
   push:
@@ -6,14 +6,40 @@ on:
   workflow_dispatch:
 
 jobs:
+  # Job 1: Run the End-to-End tests
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18' # Use Node.js version 18
+
+      - name: Install dependencies
+        run: npm ci # This will install Playwright
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps
+
+      - name: Start local web server
+        run: npx http-server . & # Start server in the background
+
+      - name: Run Playwright tests
+        run: npx playwright test
+
+  # Job 2: Deploy the website
   deploy:
+    # This job will only run if the 'test' job succeeds
+    needs: test
     runs-on: ubuntu-latest
     permissions:
       contents: read
       pages: write
       id-token: write
     
-    # This is the new section we are adding
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
