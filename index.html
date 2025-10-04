@@ -10,22 +10,66 @@
     <style>
         body {
             font-family: Arial, sans-serif;
-            max-width: 600px;
+            max-width: 800px;
             margin: 0 auto;
             padding: 20px;
+            line-height: 1.6;
         }
-        label, input, button {
+        h1, h2 {
+            color: #333;
+        }
+        label, input, textarea, button {
             display: block;
             margin-bottom: 10px;
         }
-        input, button {
+        input, textarea, button {
             width: 100%;
-            padding: 5px;
+            padding: 8px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #instructions {
+            background-color: #f8f8f8;
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
         }
     </style>
 </head>
 <body>
     <h1>3B7B Calendar Event Generator</h1>
+    
+    <div id="instructions">
+        <h2>Instructions</h2>
+        <p>This tool generates a series of calendar events based on the 3B7B (3 Business Days, 7 Business Days) routine for job search outreach. It creates an iCalendar file containing three events:</p>
+        <ol>
+            <li>An initial event to send the first message to a job search contact</li>
+            <li>A reminder event 3 business days later to check if the contact has responded, and if not, to reach out to a new contact</li>
+            <li>A reminder event 7 business days later to send a follow-up message to the contact if no response has been received</li>
+        </ol>
+        <p>To use this tool:</p>
+        <ol>
+            <li>Enter the contact's name and company</li>
+            <li>Enter the contact's method (email, LinkedIn, text message, other social media, etc.)</li>
+            <li>Select a start date (defaults to today if not set)</li>
+            <li>Adjust the times for the initial event, 3B reminder, and 7B reminder if desired</li>
+            <li>Click "Generate Calendar Events" to create and download the .ics file</li>
+            <li>Import the downloaded .ics file into your preferred calendar application</li>
+        </ol>
+        <p>This tool is inspired by the book <strong>The 2-Hour Job Search</strong>. We strongly recommend checking out this book for more job search strategies. You can find more information about the book <a href="https://2hourjobsearch.com/" target="_blank">here</a>.</p>
+        <p>If you have questions or suggestions about this tool, please email Wenjie Zhu at <a href="mailto:wzhu16@uh.edu">wzhu16@uh.edu</a>. Thank you!</p>
+    </div>
+
     <form id="eventForm">
         <label for="name">Contact Name:</label>
         <input type="text" id="name" required>
@@ -33,11 +77,23 @@
         <label for="company">Company:</label>
         <input type="text" id="company" required>
         
-        <label for="email">Contact Email:</label>
-        <input type="email" id="email" required>
+        <label for="contact">Contact Method (email, LinkedIn, text message, other social media, etc.):</label>
+        <input type="text" id="contact" required>
         
         <label for="startDate">Start Date:</label>
-        <input type="date" id="startDate" required>
+        <input type="date" id="startDate">
+        
+        <label for="initialTime">Initial Event Time:</label>
+        <input type="time" id="initialTime" value="05:00">
+        
+        <label for="threeBTime">3B Reminder Time:</label>
+        <input type="time" id="threeBTime" value="06:00">
+        
+        <label for="sevenBTime">7B Reminder Time:</label>
+        <input type="time" id="sevenBTime" value="07:00">
+        
+        <label for="note">Additional Note (optional):</label>
+        <textarea id="note"></textarea>
         
         <button type="submit">Generate Calendar Events</button>
     </form>
@@ -49,7 +105,7 @@
             event.description = description;
             event.startDate = ICAL.Time.fromJSDate(startDate, true);
             event.endDate = ICAL.Time.fromJSDate(new Date(startDate.getTime() + duration * 60000), true);
-            cal.addSubcomponent(event);
+            cal.addSubcomponent(event.component);
         }
 
         function getNextBusinessDay(date, n) {
@@ -64,39 +120,54 @@
             return currentDate;
         }
 
+        // Set default date to today with timezone adjustment
+        document.addEventListener('DOMContentLoaded', function() {
+            let today = new Date();
+            let tzOffset = today.getTimezoneOffset() * 60000;
+            let localISOTime = (new Date(today - tzOffset)).toISOString().split('T')[0];
+            document.getElementById('startDate').value = localISOTime;
+        });
+
         document.getElementById('eventForm').addEventListener('submit', function(e) {
             e.preventDefault();
 
             let name = document.getElementById('name').value;
             let company = document.getElementById('company').value;
-            let email = document.getElementById('email').value;
-            let startDate = new Date(document.getElementById('startDate').value);
+            let contact = document.getElementById('contact').value;
+            let startDate = document.getElementById('startDate').value ? moment(document.getElementById('startDate').value).startOf('day').toDate() : moment().startOf('day').toDate();
+            let note = document.getElementById('note').value;
+
+            let initialTime = document.getElementById('initialTime').value.split(':');
+            let threeBTime = document.getElementById('threeBTime').value.split(':');
+            let sevenBTime = document.getElementById('sevenBTime').value.split(':');
 
             let cal = new ICAL.Component(['vcalendar', [], []]);
 
+            // Create descriptions with optional note
+            let descriptionInitial = `Send the 6-Point Email to ${contact}`;
+            let description3B = `Check if ${name} has responded, otherwise reach out to a new contact. Contact: ${contact}`;
+            let description7B = `Send a follow-up email to ${name} if no response received. Contact: ${contact}`;
+            if (note) {
+                descriptionInitial += `\n\nAdditional Note: ${note}`;
+                description3B += `\n\nAdditional Note: ${note}`;
+                description7B += `\n\nAdditional Note: ${note}`;
+            }
+
             // Initial event
-            let initialDate = new Date(startDate);
-            initialDate.setHours(5, 0, 0, 0);
-            createEvent(cal, `Send initial email to ${name} (${company})`, `Send the 6-Point Email to ${email}`, initialDate, 60);
+            let initialDate = moment(startDate).set({ hour: initialTime[0], minute: initialTime[1] }).toDate();
+            createEvent(cal, `Send initial email to ${name} (${company})`, descriptionInitial, initialDate, 60);
 
             // 3B event
-            let threeBDate = getNextBusinessDay(startDate, 3);
-            threeBDate.setHours(6, 0, 0, 0);
-            createEvent(cal, `3B reminder for ${name} (${company})`, `Check if ${name} has responded, otherwise reach out to a new contact.`, threeBDate, 60);
+            let threeBDate = moment(getNextBusinessDay(startDate, 3)).set({ hour: threeBTime[0], minute: threeBTime[1] }).toDate();
+            createEvent(cal, `3B reminder for ${name} (${company})`, description3B, threeBDate, 60);
 
             // 7B event
-            let sevenBDate = getNextBusinessDay(startDate, 7);
-            sevenBDate.setHours(7, 0, 0, 0);
-            createEvent(cal, `7B reminder for ${name} (${company})`, `Send a follow-up email to ${name} if no response received.`, sevenBDate, 60);
+            let sevenBDate = moment(getNextBusinessDay(startDate, 7)).set({ hour: sevenBTime[0], minute: sevenBTime[1] }).toDate();
+            createEvent(cal, `7B reminder for ${name} (${company})`, description7B, sevenBDate, 60);
 
             let blob = new Blob([cal.toString()], {type: "text/calendar;charset=utf-8"});
             saveAs(blob, `${name}_${company}_3b7b_reminders.ics`);
         });
     </script>
-
-    <hr>
-<footer>
-    <p>A tool inspired by the "2-Hour Job Search".</p>
-</footer>
 </body>
 </html>
