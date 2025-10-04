@@ -1,44 +1,39 @@
 name: Deploy to GitHub Pages
 
-# This workflow runs every time you push a change to the 'main' branch
 on:
   push:
     branches: [ main ]
-  workflow_dispatch: # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
 
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  # This job is named "deploy"
   deploy:
-    # The type of runner that the job will run on
     runs-on: ubuntu-latest
     permissions:
       contents: read
       pages: write
       id-token: write
+    
+    # This is the new section we are adding
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
 
-    # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-      # Step 1: Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Step 2: Sets up the GitHub Pages environment
       - name: Setup Pages
         uses: actions/configure-pages@v5
       
-      # Step 3: "Builds" the site (in our case, it just prepares the files for upload)
       - name: Build with Jekyll
         uses: actions/jekyll-build-pages@v1
         with:
           source: ./
           destination: ./_site
 
-      # Step 4: Uploads the built site as an artifact
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
 
-      # Step 5: Deploys the artifact to GitHub Pages
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
